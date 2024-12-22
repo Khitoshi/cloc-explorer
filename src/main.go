@@ -7,19 +7,23 @@ import (
 )
 
 func main() {
-	userName, repositoryName, err := clocexplorer.ParseRepository("Khitoshi/rust-directx12")
+	userName, repositoryName, err := clocexplorer.ParseRepository("Khitoshi/gocloc")
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	ri := clocexplorer.NewRepositoryInfo(userName, repositoryName, "main")
+	ri := clocexplorer.NewRepositoryInfo(userName, repositoryName, "master")
 
-	body, err := clocexplorer.FetchFilesFromGitHub(ri)
+	paths, err := clocexplorer.FetchFilesFromGitHub(ri)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	log.Println(string(body))
+	log.Println(paths)
+
+	//for _, line := range strings.Split(prettyJSON.String(), "\n") {
+	//	log.Println(line)
+	//}
 
 	//fb := []clocexplorer.FileData{}
 	//clocexplorer.AnalyzeFile(fb, ri)

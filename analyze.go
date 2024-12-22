@@ -1,8 +1,6 @@
 package clocexplorer
 
 import (
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -76,41 +74,4 @@ func analyzeCode(fd FileData, ri RepositoryInfo) ClockFile {
 	}
 
 	return cf
-}
-
-func FetchFilesFromGitHub(ri RepositoryInfo) (bodystr []byte, err error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents?ref=%s", ri.UserName, ri.RepositoryName, ri.BranchName)
-	res, err := httpClient.Get(url)
-	if err != nil {
-		log.Println(url, "\n", err)
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	//return string(body), nil
-	return body, nil
-}
-
-func fetchCodeFromGitHub(userName string, repositoryName string, fileName string, branchName string) (bodystr string, err error) {
-	url := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", userName, repositoryName, branchName, fileName)
-	res, err := http.Get(url)
-	if err != nil {
-		log.Println(url, "\n", err)
-		return "", err
-	}
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Println(err)
-		return "", err
-	}
-
-	return string(body), nil
 }
