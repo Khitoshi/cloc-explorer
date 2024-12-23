@@ -3,91 +3,58 @@ package clocexplorer
 import (
 	"log"
 	"net/http"
-	"path/filepath"
 	"strings"
 )
 
 var httpClient = &http.Client{}
 
-type fileType struct {
-	Lang    string
-	Format  string
-	Comment string
-}
-
-func NewFileType() []fileType {
-	return []fileType{
-		{"Go", ".go", "//"},
-	}
-}
-
-type FileData struct {
-	FileName   []string
-	FormatType fileType
-}
-
-func NewFileData(filePath []string) FileData {
-	fd := FileData{}
-	fd.FormatType = NewFileType()[0]
-
-	for _, ft := range filePath {
-		if getFileType(ft) != fd.FormatType.Format {
+func NewFileData(filePath []string, languages DefinedLanguages) DefinedLanguages {
+	for _, fp := range filePath {
+		fileType, ok := GetFileType(fp)
+		if !ok {
 			continue
 		}
-		fd.FileName = append(fd.FileName, ft)
+		//FileNames[ext] = append(FileNames[ext], fp)
+		languages.Langs[fileType].Files = append(languages.Langs[fileType].Files, fp)
 	}
-	return fd
-}
-
-func getFileType(path string) string {
-	ext := filepath.Ext(path)
-	return ext
+	return languages
 }
 
 type ClockFile struct {
 	Code     uint64
 	Comments uint64
 	Blanks   uint64
-	FileType fileType
 }
 
-type OutputData struct {
-	Total    ClockFile
-	Language map[string]ClockFile
+func AnalyzeFile(languages DefinedLanguages, ri RepositoryInfo) DefinedLanguages {
+	for lang, langData := range languages.Langs {
+		cf := analyzeCode(langData.Files, langData.lineComments, ri)
+		languages.Langs[lang].Code = cf.Code
+		languages.Langs[lang].Comments = cf.Comments
+		languages.Langs[lang].Blanks = cf.Blanks
+	}
+
+	return languages
 }
 
-func AnalyzeFile(fd FileData, ri RepositoryInfo) OutputData {
-	od := OutputData{}
-	//for _, f := range fd {
-	//	cf := analyzeCode(f, ri)
-	//	od.Language[cf.FileType.Lang] = cf
-	//}
-	cf := analyzeCode(fd, ri)
-	od.Language = make(map[string]ClockFile)
-	od.Language[cf.FileType.Lang] = cf
-
-	return od
-}
-
-func analyzeCode(fd FileData, ri RepositoryInfo) ClockFile {
+func analyzeCode(filepaths []string, lineComment []string, ri RepositoryInfo) ClockFile {
 	cf := ClockFile{}
-	cf.FileType = fd.FormatType
-	for _, f := range fd.FileName {
-		code, err := fetchCodeFromGitHub(ri.UserName, ri.RepositoryName, f, ri.BranchName)
+	for _, filepath := range filepaths {
+		code, err := fetchCodeFromGitHub(ri.UserName, ri.RepositoryName, filepath, ri.BranchName)
 		if err != nil {
 			log.Println(err)
 			return cf
 		}
-		a := analyzeCodeContent(code)
-		cf.Blanks += a.Blanks
-		cf.Comments += a.Comments
-		cf.Code += a.Code
+		analyzeCodeData := analyzeCodeContent(code, lineComment)
+		cf.Blanks += analyzeCodeData.Blanks
+		cf.Comments += analyzeCodeData.Comments
+		cf.Code += analyzeCodeData.Code
 	}
 
 	return cf
 }
 
-func analyzeCodeContent(code string) ClockFile {
+func analyzeCodeContent(code string, lineComment []string) ClockFile {
 	cf := ClockFile{}
 	for _, line := range strings.Split(code, "\n") {
 		line = strings.TrimSpace(line)
@@ -99,9 +66,11 @@ func analyzeCodeContent(code string) ClockFile {
 		}
 
 		//コメント
-		if strings.HasPrefix(line, "//") {
-			cf.Comments++
-			continue
+		for _, lc := range lineComment {
+			if strings.HasPrefix(line, lc) {
+				cf.Comments++
+				break
+			}
 		}
 
 		cf.Code++
