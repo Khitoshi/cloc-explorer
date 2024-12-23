@@ -3,6 +3,7 @@ package clocexplorer
 import (
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
 )
 
@@ -25,6 +26,24 @@ type FileData struct {
 	FormatType fileType
 }
 
+func NewFileData(filePath []string) FileData {
+	fd := FileData{}
+	fd.FormatType = NewFileType()[0]
+
+	for _, ft := range filePath {
+		if getFileType(ft) != fd.FormatType.Format {
+			continue
+		}
+		fd.FileName = append(fd.FileName, ft)
+	}
+	return fd
+}
+
+func getFileType(path string) string {
+	ext := filepath.Ext(path)
+	return ext
+}
+
 type ClockFile struct {
 	Code     uint64
 	Comments uint64
@@ -37,41 +56,55 @@ type OutputData struct {
 	Language map[string]ClockFile
 }
 
-func AnalyzeFile(fd []FileData, ri RepositoryInfo) OutputData {
-
+func AnalyzeFile(fd FileData, ri RepositoryInfo) OutputData {
 	od := OutputData{}
-	for _, f := range fd {
-		cf := analyzeCode(f, ri)
-		od.Language[cf.FileType.Lang] = cf
-	}
+	//for _, f := range fd {
+	//	cf := analyzeCode(f, ri)
+	//	od.Language[cf.FileType.Lang] = cf
+	//}
+	cf := analyzeCode(fd, ri)
+	od.Language = make(map[string]ClockFile)
+	od.Language[cf.FileType.Lang] = cf
 
 	return od
 }
 
 func analyzeCode(fd FileData, ri RepositoryInfo) ClockFile {
 	cf := ClockFile{}
-
+	cf.FileType = fd.FormatType
 	for _, f := range fd.FileName {
 		code, err := fetchCodeFromGitHub(ri.UserName, ri.RepositoryName, f, ri.BranchName)
 		if err != nil {
 			log.Println(err)
 			return cf
 		}
-		log.Println(code)
-		code = strings.TrimSpace(code)
-		log.Println(code)
-
-		/*
-			if strings.HasPrefix(code, fd.FormatType.Comment) {
-				cf.Comments += 0
-				continue
-			}
-
-			cf.Code += 0
-
-			cf.Blanks += 0
-		*/
+		a := analyzeCodeContent(code)
+		cf.Blanks += a.Blanks
+		cf.Comments += a.Comments
+		cf.Code += a.Code
 	}
 
+	return cf
+}
+
+func analyzeCodeContent(code string) ClockFile {
+	cf := ClockFile{}
+	for _, line := range strings.Split(code, "\n") {
+		line = strings.TrimSpace(line)
+
+		//空行
+		if len(strings.TrimSpace(line)) == 0 {
+			cf.Blanks++
+			continue
+		}
+
+		//コメント
+		if strings.HasPrefix(line, "//") {
+			cf.Comments++
+			continue
+		}
+
+		cf.Code++
+	}
 	return cf
 }

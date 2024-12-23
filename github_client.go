@@ -1,7 +1,6 @@
 package clocexplorer
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -62,12 +61,5 @@ func fetchCodeFromGitHub(userName string, repositoryName string, fileName string
 		return "", err
 	}
 
-	var prettyJSON bytes.Buffer
-	err = json.Indent(&prettyJSON, body, "", "  ")
-	if err != nil {
-		log.Println("Failed to generate pretty JSON:", err)
-		return
-	}
-
-	return prettyJSON.String(), nil
+	return string(body), nil
 }

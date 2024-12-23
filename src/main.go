@@ -19,12 +19,18 @@ func main() {
 		log.Println(err)
 		return
 	}
-	log.Println(paths)
 
 	//for _, line := range strings.Split(prettyJSON.String(), "\n") {
 	//	log.Println(line)
 	//}
 
-	//fb := []clocexplorer.FileData{}
-	//clocexplorer.AnalyzeFile(fb, ri)
+	fb := clocexplorer.NewFileData(paths)
+	log.Println(fb)
+	od := clocexplorer.AnalyzeFile(fb, ri)
+
+	log.Printf("言語:%s", od.Language["Go"].FileType.Lang)
+	log.Printf("Comments:%d", od.Language["Go"].Comments)
+	log.Printf("Code:%d", od.Language["Go"].Code)
+	log.Printf("Blanks:%d", od.Language["Go"].Blanks)
+
 }
