@@ -7,12 +7,11 @@ import (
 )
 
 func main() {
-	userName, repositoryName, err := clocexplorer.ParseRepository("Khitoshi/gocloc")
+	ri, err := clocexplorer.NewRepositoryInfo("Khitoshi/GameGraphicsLibrary", "main")
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	ri := clocexplorer.NewRepositoryInfo(userName, repositoryName, "master")
 
 	paths, err := clocexplorer.FetchFilesFromGitHub(ri)
 	if err != nil {
@@ -20,17 +19,16 @@ func main() {
 		return
 	}
 
-	//for _, line := range strings.Split(prettyJSON.String(), "\n") {
-	//	log.Println(line)
-	//}
+	languages := clocexplorer.NewDefinedLanguages()
 
-	fb := clocexplorer.NewFileData(paths)
-	log.Println(fb)
-	od := clocexplorer.AnalyzeFile(fb, ri)
+	language := clocexplorer.NewFileData(paths, *languages)
+	language = clocexplorer.AnalyzeFile(language, ri)
 
-	log.Printf("言語:%s", od.Language["Go"].FileType.Lang)
-	log.Printf("Comments:%d", od.Language["Go"].Comments)
-	log.Printf("Code:%d", od.Language["Go"].Code)
-	log.Printf("Blanks:%d", od.Language["Go"].Blanks)
-
+	for lang, langData := range language.Langs {
+		log.Printf("言語:%s", lang)
+		log.Printf("Comments:%d", langData.Comments)
+		log.Printf("Code:%d", langData.Code)
+		log.Printf("Blanks:%d", langData.Blanks)
+		log.Printf("\n\n")
+	}
 }
