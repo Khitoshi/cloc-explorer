@@ -8,12 +8,9 @@ import (
 )
 
 func WriteResult(languages clocexplorer.DefinedLanguages) {
-	// write header
-	//o.WriteHeader()
 	const commonHeader string = "name                           files          blank        comment           code"
 	const defaultOutputSeparator string = "-------------------------------------------------------------------------" +
 		"-------------------------------------------------------------------------"
-	//"-------------------------------------------------------------------------"
 	fmt.Println(commonHeader)
 	fmt.Println(defaultOutputSeparator)
 
@@ -31,9 +28,6 @@ func WriteResult(languages clocexplorer.DefinedLanguages) {
 		totalCode += lang.Code
 	}
 
-	// write footer
-	//o.WriteFooter()
-	//fmt.Println('\n')
 	fmt.Printf("\n")
 	fmt.Printf("%-27v %6v %14v %14v %14v\n", "Total", totalFiles, totalBlanks, totalComments, totalCode)
 }
