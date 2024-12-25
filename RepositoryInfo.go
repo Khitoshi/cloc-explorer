@@ -2,7 +2,6 @@ package clocexplorer
 
 import (
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -13,9 +12,8 @@ type RepositoryInfo struct {
 }
 
 func NewRepositoryInfo(repository string, branchName string) (RepositoryInfo, error) {
-	userName, repositoryName, err := ParseRepository(repository)
+	userName, repositoryName, err := parseRepository(repository)
 	if err != nil {
-		log.Println(err)
 		return RepositoryInfo{}, err
 	}
 
@@ -26,13 +24,13 @@ func NewRepositoryInfo(repository string, branchName string) (RepositoryInfo, er
 	}, nil
 }
 
-func ParseRepository(repository string) (userName string, repositoryName string, err error) {
+func parseRepository(repository string) (userName string, repositoryName string, err error) {
 	f := func(c rune) bool {
 		return c == '/'
 	}
 	s := strings.FieldsFunc(repository, f)
 	if len(s) != 2 {
-		return "", "", fmt.Errorf("Invalid repository name")
+		return "", "", fmt.Errorf("parseRepository: Invalid repository or branch name")
 	}
 	return s[0], s[1], nil
 }
