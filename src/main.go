@@ -5,12 +5,24 @@ import (
 	"log"
 
 	clocexplorer "github.com/Khitoshi/cloc-explorer"
+	flags "github.com/jessevdk/go-flags"
 )
+
+type CmdOptions struct {
+	MatchRepository string `long:"match-repository" description:"Match GitHubRepository name"`
+	MatchBranch     string `long:"match-branch" description:"Match Branch name"`
+}
+
+func NewCmdOptions() *CmdOptions {
+	return &CmdOptions{
+		MatchRepository: "",
+		MatchBranch:     "main",
+	}
+}
 
 func WriteResult(languages clocexplorer.DefinedLanguages) {
 	const commonHeader string = "name                           files          blank        comment           code"
-	const defaultOutputSeparator string = "-------------------------------------------------------------------------" +
-		"-------------------------------------------------------------------------"
+	const defaultOutputSeparator string = "-------------------------------------------------------------------------"
 	fmt.Println(commonHeader)
 	fmt.Println(defaultOutputSeparator)
 
@@ -33,13 +45,24 @@ func WriteResult(languages clocexplorer.DefinedLanguages) {
 }
 
 func main() {
-	ri, err := clocexplorer.NewRepositoryInfo("Khitoshi/gocloc", "master")
+	var opts CmdOptions
+
+	parser := flags.NewParser(&opts, flags.Default)
+	parser.Name = "cloc-explorer"
+	parser.Usage = "[OPTIONS] PATH[...]"
+
+	_, err := flags.Parse(&opts)
+	if err != nil {
+		return
+	}
+
+	ri, err := clocexplorer.NewRepositoryInfo(opts.MatchRepository, opts.MatchBranch)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	paths, err := clocexplorer.FetchFilesFromGitHub(ri)
+	filePaths, err := clocexplorer.FetchFilesFromGitHub(ri)
 	if err != nil {
 		log.Println(err)
 		return
@@ -47,15 +70,8 @@ func main() {
 
 	languages := clocexplorer.NewDefinedLanguages()
 
-	language := clocexplorer.NewFileData(paths, *languages)
-	language = clocexplorer.AnalyzeFile(language, ri)
+	languages = clocexplorer.PopulateFilePaths(filePaths, languages)
+	languages = clocexplorer.AnalyzeLanguages(languages, ri)
 
-	//for lang, langData := range language.Langs {
-	//	log.Printf("言語:%s", lang)
-	//	log.Printf("Comments:%d", langData.Comments)
-	//	log.Printf("Code:%d", langData.Code)
-	//	log.Printf("Blanks:%d", langData.Blanks)
-	//	log.Printf("\n\n")
-	//}
-	WriteResult(language)
+	WriteResult(*languages)
 }
