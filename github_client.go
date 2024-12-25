@@ -16,9 +16,11 @@ type GitHubTreeResponse struct {
 	Tree []GitHubFile `json:"tree"`
 }
 
+var httpClient = &http.Client{}
+
 func FetchFilesFromGitHub(ri RepositoryInfo) (paths []string, err error) {
-	//url := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents?ref=%s", ri.UserName, ri.RepositoryName, ri.BranchName)
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1", ri.UserName, ri.RepositoryName, ri.BranchName)
+
 	res, err := httpClient.Get(url)
 	if err != nil {
 		log.Println(url, "\n", err)
@@ -48,6 +50,7 @@ func FetchFilesFromGitHub(ri RepositoryInfo) (paths []string, err error) {
 
 func fetchCodeFromGitHub(userName string, repositoryName string, fileName string, branchName string) (bodystr string, err error) {
 	url := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", userName, repositoryName, branchName, fileName)
+
 	res, err := http.Get(url)
 	if err != nil {
 		log.Println(url, "\n", err)
