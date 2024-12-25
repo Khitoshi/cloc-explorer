@@ -2,19 +2,15 @@ package clocexplorer
 
 import (
 	"log"
-	"net/http"
 	"strings"
 )
 
-var httpClient = &http.Client{}
-
-func NewFileData(filePath []string, languages DefinedLanguages) DefinedLanguages {
+func PopulateFilePaths(filePath []string, languages *DefinedLanguages) *DefinedLanguages {
 	for _, fp := range filePath {
 		fileType, ok := GetFileType(fp)
 		if !ok {
 			continue
 		}
-		//FileNames[ext] = append(FileNames[ext], fp)
 		languages.Langs[fileType].Files = append(languages.Langs[fileType].Files, fp)
 	}
 	return languages
@@ -26,9 +22,9 @@ type ClockFile struct {
 	Blanks   uint64
 }
 
-func AnalyzeFile(languages DefinedLanguages, ri RepositoryInfo) DefinedLanguages {
+func AnalyzeLanguages(languages *DefinedLanguages, ri RepositoryInfo) *DefinedLanguages {
 	for lang, langData := range languages.Langs {
-		cf := analyzeCode(langData.Files, langData.lineComments, ri)
+		cf := analyzeFilePaths(langData.Files, langData.lineComments, ri)
 		languages.Langs[lang].Code = cf.Code
 		languages.Langs[lang].Comments = cf.Comments
 		languages.Langs[lang].Blanks = cf.Blanks
@@ -37,7 +33,7 @@ func AnalyzeFile(languages DefinedLanguages, ri RepositoryInfo) DefinedLanguages
 	return languages
 }
 
-func analyzeCode(filepaths []string, lineComment []string, ri RepositoryInfo) ClockFile {
+func analyzeFilePaths(filepaths []string, lineComment []string, ri RepositoryInfo) ClockFile {
 	cf := ClockFile{}
 	for _, filepath := range filepaths {
 		code, err := fetchCodeFromGitHub(ri.UserName, ri.RepositoryName, filepath, ri.BranchName)
