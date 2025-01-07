@@ -3,6 +3,7 @@ package clocexplorer
 import (
 	"log"
 	"strings"
+	"sync"
 )
 
 func PopulateFilePaths(filePath []string, languages *DefinedLanguages) *DefinedLanguages {
@@ -17,29 +18,40 @@ func PopulateFilePaths(filePath []string, languages *DefinedLanguages) *DefinedL
 }
 
 type ClockFile struct {
+	Lang     string
 	Code     uint64
 	Comments uint64
 	Blanks   uint64
 }
 
 func AnalyzeLanguages(languages *DefinedLanguages, ri RepositoryInfo) *DefinedLanguages {
+	cfChan := make(chan ClockFile, len(languages.Langs))
+	var wg sync.WaitGroup
+	wg.Add(len(languages.Langs))
 	for lang, langData := range languages.Langs {
-		cf := analyzeFilePaths(langData.Files, langData.lineComments, ri)
-		languages.Langs[lang].Code = cf.Code
-		languages.Langs[lang].Comments = cf.Comments
-		languages.Langs[lang].Blanks = cf.Blanks
+		go func(lang string, langData *Language) {
+			defer wg.Done()
+			analyzeFilePaths(cfChan, lang, langData.Files, langData.lineComments, ri)
+		}(lang, langData)
+	}
+
+	wg.Wait()
+	close(cfChan)
+	for cf := range cfChan {
+		languages.Langs[cf.Lang].Comments = cf.Comments
+		languages.Langs[cf.Lang].Blanks = cf.Blanks
+		languages.Langs[cf.Lang].Code = cf.Code
 	}
 
 	return languages
 }
 
-func analyzeFilePaths(filepaths []string, lineComment []string, ri RepositoryInfo) ClockFile {
-	cf := ClockFile{}
+func analyzeFilePaths(cfChan chan ClockFile, lang string, filepaths []string, lineComment []string, ri RepositoryInfo) {
+	cf := ClockFile{Lang: lang}
 	for _, filepath := range filepaths {
 		code, err := fetchCodeFromGitHub(ri.UserName, ri.RepositoryName, filepath, ri.BranchName)
 		if err != nil {
 			log.Println(err)
-			return cf
 		}
 		analyzeCodeData := analyzeCodeContent(code, lineComment)
 		cf.Blanks += analyzeCodeData.Blanks
@@ -47,7 +59,7 @@ func analyzeFilePaths(filepaths []string, lineComment []string, ri RepositoryInf
 		cf.Code += analyzeCodeData.Code
 	}
 
-	return cf
+	cfChan <- cf
 }
 
 func analyzeCodeContent(code string, lineComment []string) ClockFile {
